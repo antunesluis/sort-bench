@@ -7,9 +7,14 @@ import (
 	"strconv"
 )
 
-// ReadNumbersFromFile lê números de um arquivo, um por linha
-func ReadNumbersFromFile(filePath string) ([]int, error) {
-	file, err := os.Open(filePath)
+type FileHandler struct{}
+
+func NewFileHandler() *FileHandler {
+	return &FileHandler{}
+}
+
+func (f *FileHandler) ReadNumbers(filename string) ([]int, error) {
+	file, err := os.Open(filename)
 	if err != nil {
 		return nil, err
 	}
@@ -17,25 +22,19 @@ func ReadNumbersFromFile(filePath string) ([]int, error) {
 
 	var numbers []int
 	scanner := bufio.NewScanner(file)
-
 	for scanner.Scan() {
 		num, err := strconv.Atoi(scanner.Text())
 		if err != nil {
-			return nil, fmt.Errorf("erro ao converter número: %v", err)
+			return nil, err
 		}
 		numbers = append(numbers, num)
 	}
 
-	if err := scanner.Err(); err != nil {
-		return nil, err
-	}
-
-	return numbers, nil
+	return numbers, scanner.Err()
 }
 
-// WriteNumbersToFile escreve números em um arquivo, um por linha
-func WriteNumbersToFile(filePath string, numbers []int) error {
-	file, err := os.Create(filePath)
+func (f *FileHandler) WriteNumbers(filename string, numbers []int) error {
+	file, err := os.Create(filename)
 	if err != nil {
 		return err
 	}
@@ -43,8 +42,7 @@ func WriteNumbersToFile(filePath string, numbers []int) error {
 
 	writer := bufio.NewWriter(file)
 	for _, num := range numbers {
-		_, err := writer.WriteString(fmt.Sprintf("%d\n", num))
-		if err != nil {
+		if _, err := writer.WriteString(fmt.Sprintf("%d\n", num)); err != nil {
 			return err
 		}
 	}

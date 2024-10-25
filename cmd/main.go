@@ -4,87 +4,90 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"os"
-
-	// "path/filepath"
-	// "sort-bench/internal/analysis"
+	"sort-bench/internal/analysis"
+	"sort-bench/internal/config"
 	"sort-bench/internal/sorting"
-	// "sort-bench/internal/utils"
-	// "sort-bench/internal/visualization"
-	// "sort-bench/pkg/benchmark"
+	"sort-bench/internal/utils"
 )
 
 func main() {
-	// Definir subcomandos
-	sortCmd := flag.NewFlagSet("sort", flag.ExitOnError)
-	// compareCmd := flag.NewFlagSet("compare", flag.ExitOnError)
-	// visualizeCmd := flag.NewFlagSet("visualize", flag.ExitOnError)
-	// benchmarkCmd := flag.NewFlagSet("benchmark", flag.ExitOnError)
+	// Flags globais usando o package flag padrão
+	inputFile := flag.String("input", "", "Arquivo de entrada")
+	outputFile := flag.String("output", "", "Arquivo de saída")
+	algorithm := flag.String("algo", "mergesort", "Algoritmo de ordenação (mergesort, quicksort, bubblesort, heapsort)")
+	mode := flag.String("mode", "recursive", "Modo de execução (recursive, iterative, parallel)")
+	analyze := flag.Bool("analyze", false, "Realizar análise de performance")
+	visualize := flag.Bool("visualize", false, "Gerar visualização da árvore de recursão")
 
-	// Flags para o subcomando 'sort'
-	sortAlgorithm := sortCmd.String("algorithm", "mergesort", "Algoritmo de ordenação (mergesort, quicksort, bubblesort, heapsort)")
-	sortInput := sortCmd.String("input", "", "Caminho do arquivo de entrada")
-	sortOutput := sortCmd.String("output", "", "Caminho do arquivo de saída")
+	// Parsing dos argumentos
+	flag.Parse()
 
-	// // Flags para o subcomando 'compare'
-	// compareAlgorithms := compareCmd.String("algorithms", "mergesort,quicksort", "Algoritmos para comparar, separados por vírgula")
-	// compareInput := compareCmd.String("input", "", "Caminho do arquivo de entrada para comparação")
-	//
-	// // Flags para o subcomando 'visualize'
-	// visualizeInput := visualizeCmd.String("input", "", "Caminho do arquivo de entrada para visualização")
-	// visualizeOutput := visualizeCmd.String("output", "", "Caminho do arquivo de saída para a visualização")
-	//
-	// // Flags para o subcomando 'benchmark'
-	// benchmarkAlgorithm := benchmarkCmd.String("algorithm", "mergesort", "Algoritmo para benchmark")
-	// benchmarkInput := benchmarkCmd.String("input", "", "Caminho do arquivo de entrada para benchmark")
-
-	if len(os.Args) < 2 {
-		fmt.Println("Uso esperado: [sort|compare|visualize|benchmark] [opções]")
-		os.Exit(1)
+	if *inputFile == "" {
+		log.Fatal("Arquivo de entrada é obrigatório")
+		// Validação de argumentos obrigatórios
 	}
 
-	switch os.Args[1] {
-	case "sort":
-		sortCmd.Parse(os.Args[2:])
-		runSort(*sortAlgorithm, *sortInput, *sortOutput)
-	// case "compare":
-	// 	compareCmd.Parse(os.Args[2:])
-	// 	runCompare(*compareAlgorithms, *compareInput)
-	// case "visualize":
-	// 	visualizeCmd.Parse(os.Args[2:])
-	// 	runVisualize(*visualizeInput, *visualizeOutput)
-	// case "benchmark":
-	// 	benchmarkCmd.Parse(os.Args[2:])
-	// 	runBenchmark(*benchmarkAlgorithm, *benchmarkInput)
-	default:
-		fmt.Println("Subcomando desconhecido")
-		os.Exit(1)
+	cfg := &config.Config{
+		InputFile:  *inputFile,
+		OutputFile: *outputFile,
+		Algorithm:  *algorithm,
+		Mode:       *mode,
+		Analyze:    *analyze,
 	}
-}
 
-func runSort(algorithm, inputPath, outputPath string) {
-	// Ler o arquivo de entrada
-	numbers, err := utils.ReadNumbersFromFile(inputPath)
+	fmt.Println("Configurações:")
+	fmt.Printf("Input: %s\n", cfg.InputFile)
+	fmt.Printf("Output: %s\n", cfg.OutputFile)
+	fmt.Printf("Algorithm: %s\n", cfg.Algorithm)
+	fmt.Printf("Mode: %s\n", cfg.Mode)
+	fmt.Printf("Analyze: %s\n", cfg.Analyze)
+
+	fileHandler := utils.NewFileHandler()
+	sorterFactory := sorting.NewSorterFactory()
+	analyzer := analysis.NewPerformanceAnalyzer()
+	// Leitura dos dados
+	numbers, err := fileHandler.ReadNumbers(cfg.InputFile)
 	if err != nil {
-		log.Fatalf("Erro ao ler o arquivo de entrada: %v", err)
+		log.Fatal("Erro ao ler arquivo:", err)
 	}
 
-	// Ordenar os números
-	var sortedNumbers []int
-	switch algorithm {
-	case "mergesort":
-		sortedNumbers = sorting.MergeSort(numbers)
-	// case "quicksort":
-	// 	sortedNumbers = sorting.QuickSort(numbers)
-	default:
-		log.Fatalf("Algoritmo de ordenação desconhecido: %s", algorithm)
-	}
-
-	// Escrever o resultado no arquivo de saída
-	err = utils.WriteNumbersToFile(outputPath, sortedNumbers)
+	// Execução da ordenação
+	sorter, err := sorterFactory.GetSorter(cfg.Algorithm, cfg.Mode)
 	if err != nil {
-		log.Fatalf("Erro ao escrever no arquivo de saída: %v", err)
+		log.Fatal("Erro ao criar sorter:", err)
 	}
 
-	fmt.Printf("Ordenação concluída. Resultado salvo em %s\n", outputPath)
+	// Ordenação e análise
+	var result []int
+	var metrics analysis.PerformanceMetrics
+
+	if *analyze {
+		metrics = analyzer.Analyze(numbers, sorter)
+		result = metrics.SortedData
+	} else {
+		result = sorter.Sort(numbers)
+	}
+
+	// Escrita do resultado
+	if cfg.OutputFile != "" {
+		if err := fileHandler.WriteNumbers(cfg.OutputFile, result); err != nil {
+			log.Fatal("Erro ao escrever resultado:", err)
+		}
+		fmt.Printf("Arquivo ordenado salvo em: %s\n", cfg.OutputFile)
+	}
+
+	// Exibição de métricas se solicitado
+	if *analyze {
+		fmt.Printf("Performance:\n")
+		fmt.Printf("Tempo de execução: %v\n", metrics.ExecutionTime)
+		fmt.Printf("Comparações: %d\n", metrics.Comparisons)
+		fmt.Printf("Trocas: %d\n", metrics.Swaps)
+	}
+
+	// Visualização se solicitada
+	if *visualize {
+		if err := visualize.GenerateTree(numbers, "tree.png"); err != nil {
+			log.Printf("Erro ao gerar visualização: %v", err)
+		}
+	}
 }
