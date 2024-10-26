@@ -2,137 +2,97 @@ package visualization
 
 import (
 	"fmt"
+	"os"
+
 	"github.com/goccy/go-graphviz"
 )
 
-// MergeNode representa um nó no processo de merge
-type MergeNode struct {
-	Left     []int
-	Right    []int
-	Result   []int
-	Children []*MergeNode
+type TreeVisualizer struct {
+	nodes    []Node
+	edges    []Edge
+	maxDepth int
 }
 
-// MergeVisualizer gera visualizações do processo de merge
-type MergeVisualizer struct {
-	root *MergeNode
+type Node struct {
+	ID       int
+	Value    []int
+	Depth    int
+	IsMerged bool
 }
 
-func NewMergeVisualizer() *MergeVisualizer {
-	return &MergeVisualizer{}
+type Edge struct {
+	From int
+	To   int
 }
 
-// TrackMerge registra uma operação de merge
-func (m *MergeVisualizer) TrackMerge(left, right, result []int) {
-	node := &MergeNode{
-		Left:   make([]int, len(left)),
-		Right:  make([]int, len(right)),
-		Result: make([]int, len(result)),
-	}
-	copy(node.Left, left)
-	copy(node.Right, right)
-	copy(node.Result, result)
-
-	if m.root == nil {
-		m.root = node
-	} else {
-		// Encontra o nó pai apropriado e adiciona como filho
-		parent := m.findParentNode(m.root, left, right)
-		if parent != nil {
-			parent.Children = append(parent.Children, node)
-		}
+func NewTreeVisualizer() *TreeVisualizer {
+	return &TreeVisualizer{
+		nodes:    make([]Node, 0),
+		edges:    make([]Edge, 0),
+		maxDepth: 0,
 	}
 }
 
-// findParentNode encontra o nó pai apropriado baseado nos arrays de entrada
-func (m *MergeVisualizer) findParentNode(current *MergeNode, left, right []int) *MergeNode {
-	// Se o resultado atual contém todos os elementos dos arrays de entrada
-	// este é o nó pai apropriado
-	resultMap := make(map[int]bool)
-	for _, v := range current.Result {
-		resultMap[v] = true
+// TrackRecursion registra uma operação de divisão ou merge
+func (t *TreeVisualizer) TrackRecursion(arr []int, depth int, isMerged bool) int {
+	nodeID := len(t.nodes)
+	t.nodes = append(t.nodes, Node{
+		ID:       nodeID,
+		Value:    arr,
+		Depth:    depth,
+		IsMerged: isMerged,
+	})
+
+	if depth > t.maxDepth {
+		t.maxDepth = depth
 	}
 
-	allFound := true
-	for _, v := range left {
-		if !resultMap[v] {
-			allFound = false
-			break
-		}
-	}
-	for _, v := range right {
-		if !resultMap[v] {
-			allFound = false
-			break
-		}
-	}
-
-	if allFound {
-		return current
-	}
-
-	// Procura recursivamente nos filhos
-	for _, child := range current.Children {
-		if found := m.findParentNode(child, left, right); found != nil {
-			return found
-		}
-	}
-
-	return nil
+	return nodeID
 }
 
-// GenerateVisualization cria uma visualização do processo de merge
-func (m *MergeVisualizer) GenerateVisualization(filename string) error {
+// AddEdge adiciona uma conexão entre dois nós
+func (t *TreeVisualizer) AddEdge(from, to int) {
+	t.edges = append(t.edges, Edge{From: from, To: to})
+}
+
+// GenerateVisualization cria uma visualização da árvore de recursão
+func (t *TreeVisualizer) GenerateVisualization(filename string) error {
 	g := graphviz.New()
-	defer g.Close()
-
 	graph, err := g.Graph()
 	if err != nil {
 		return err
 	}
 	defer graph.Close()
 
-	// Configuração do grafo
-	graph.SetRankDir("TB") // Top to Bottom layout
+	// Criar nós
+	graphNodes := make(map[int]*graphviz.Node)
+	for _, node := range t.nodes {
+		label := fmt.Sprintf("%v", node.Value)
+		if len(label) > 20 {
+			label = label[:17] + "..."
+		}
 
-	// Adiciona nós e arestas recursivamente
-	if m.root != nil {
-		m.addNodeToGraph(graph, m.root, "")
+		n, err := graph.CreateNode(fmt.Sprintf("%d", node.ID))
+		if err != nil {
+			return err
+		}
+
+		n.SetLabel(label)
+		if node.IsMerged {
+			n.SetColor("green")
+		}
+		graphNodes[node.ID] = n
 	}
 
-	// Salva o resultado
-	if err := g.RenderFilename(graph, graphviz.PNG, filename); err != nil {
-		return err
+	// Criar arestas
+	for _, edge := range t.edges {
+		_, err := graph.CreateEdge("", graphNodes[edge.From], graphNodes[edge.To])
+		if err != nil {
+			return err
+		}
 	}
 
-	return nil
+	// Salvar o gráfico
+	return g.RenderFilename(graph, graphviz.PNG, filename)
 }
 
-// addNodeToGraph adiciona um nó e suas conexões ao grafo
-func (m *MergeVisualizer) addNodeToGraph(graph *graphviz.Graph, node *MergeNode, parentID string) string {
-	// Cria identificador único para o nó
-	nodeID := fmt.Sprintf("node_%p", node)
-
-	// Cria o nó no grafo
-	n, _ := graph.CreateNode(nodeID)
-
-	// Configura aparência do nó
-	n.SetShape("record")
-	label := fmt.Sprintf("{Left: %v|Right: %v|Result: %v}", node.Left, node.Right, node.Result)
-	n.SetLabel(label)
-	n.SetStyle("filled")
-	n.SetFillColor("lightblue")
-
-	// Conecta ao pai se existir
-	if parentID != "" {
-		parent, _ := graph.Node(parentID)
-		graph.CreateEdge("", parent, n)
-	}
-
-	// Processa filhos recursivamente
-	for _, child := range node.Children {
-		m.addNodeToGraph(graph, child, nodeID)
-	}
-
-	return nodeID
-}

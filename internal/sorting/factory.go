@@ -17,7 +17,7 @@ func NewSorterFactory() *SortFactory {
 func (f *SortFactory) GetSorter(algorithm string, mode string) (Sorter, error) {
 	switch algorithm {
 	case "mergesort":
-		return NewTrac(mode), nil
+		return NewMergeSort(mode), nil
 	// Aqui você pode adicionar outros algoritmos como quicksort, bubblesort, etc.
 	default:
 		return nil, errors.New(fmt.Sprintf("Algoritmo '%s' não é suportado", algorithm))
