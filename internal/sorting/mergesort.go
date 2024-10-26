@@ -1,113 +1,95 @@
 package sorting
 
-// MergeSort implementa diferentes variantes do algoritmo merge sort
+import (
+	"time"
+)
+
 type MergeSort struct {
-	// buffer reutilizável para reduzir alocações de memória
-	buffer []int
-	// modo de operação (recursivo, iterativo)
-	mode string
-	// metricas de execução
-	metrics SortMetrics
+	BaseSorter
 }
 
-// NewMergeSort cria uma nova instância de MergeSort
-// mode pode ser "recursive" ou "iterative"
-func NewMergeSort(mode string) *MergeSort {
+func NewMergeSort(mode SortMode) *MergeSort {
 	return &MergeSort{
-		mode: mode,
+		BaseSorter: NewBaseSorter("MergeSort", mode),
 	}
 }
 
-// Name implementa a interface Sorter
-func (m *MergeSort) Name() string {
-	return "MergeSort-" + m.mode
-}
-
-// Sort implementa a interface Sorter
 func (m *MergeSort) Sort(arr []int) []int {
-	// Inicializa ou redimensiona o buffer se necessário
-	if len(m.buffer) < len(arr) {
-		m.buffer = make([]int, len(arr))
-	}
-
-	// Cria uma cópia do array para não modificar o original
+	start := time.Now()
 	result := make([]int, len(arr))
 	copy(result, arr)
 
-	// Escolhe o método de ordenação baseado no modo
 	switch m.mode {
-	case "recursive":
-		return m.sortRecursive(result, 0, len(result)-1)
-	default: // "iterative" é o padrão
-		return m.sortIterative(result)
+	case ModeRecursive:
+		m.sortRecursive(result, 0, len(result)-1, 0)
+	case ModeIterative:
+		m.sortIterative(result)
+		// case ModeParallel:
+		// result = m.sortParallel(result)
+	}
+
+	m.metrics.Time = time.Since(start)
+	return result
+}
+
+func (m *MergeSort) sortRecursive(arr []int, left, right, depth int) {
+	if left < right {
+		mid := left + (right-left)/2
+
+		m.sortRecursive(arr, left, mid, depth+1)
+		m.sortRecursive(arr, mid+1, right, depth+1)
+		m.merge(arr, left, mid, right, depth)
 	}
 }
 
-// sortRecursive implementa a versão recursiva
-func (m *MergeSort) sortRecursive(arr []int, left, right int) []int {
-	if left >= right {
-		return arr
-	}
-
-	mid := left + (right-left)/2
-	m.sortRecursive(arr, left, mid)
-	m.sortRecursive(arr, mid+1, right)
-	m.mergeInPlace(arr, left, mid, right)
-
-	return arr
-}
-
-// sortIterative implementa a versão iterativa
-func (m *MergeSort) sortIterative(arr []int) []int {
+func (m *MergeSort) sortIterative(arr []int) {
 	n := len(arr)
-
-	// Ordena em níveis crescentes
 	for size := 1; size < n; size *= 2 {
-		// Usa o buffer temporário para evitar alocações
 		for left := 0; left < n-1; left += 2 * size {
-			mid := min(left+size, n)
-			right := min(left+2*size, n)
-			m.mergeInPlace(arr, left, mid-1, right-1)
+			mid := min(left+size-1, n-1)
+			right := min(left+2*size-1, n-1)
+			m.merge(arr, left, mid, right, 0)
 		}
 	}
-
-	return arr
 }
 
-// mergeInPlace realiza o merge in-place usando o buffer
-func (m *MergeSort) mergeInPlace(arr []int, left, mid, right int) {
-	// Copia para o buffer
-	for i := left; i <= right; i++ {
-		m.buffer[i] = arr[i]
-	}
+func (m *MergeSort) merge(arr []int, left, mid, right, depth int) {
+	temp := make([]int, right-left+1)
+	i, j, k := left, mid+1, 0
 
-	// Índices para as duas metades
-	i := left    // primeira metade
-	j := mid + 1 // segunda metade
-	k := left    // array resultado
-
-	// Merge principal
 	for i <= mid && j <= right {
-		if m.buffer[i] <= m.buffer[j] {
-			arr[k] = m.buffer[i]
+		m.metrics.Comparisons++
+		if arr[i] <= arr[j] {
+			temp[k] = arr[i]
 			i++
 		} else {
-			arr[k] = m.buffer[j]
+			temp[k] = arr[j]
 			j++
 		}
+		m.metrics.Swaps++
 		k++
 	}
 
-	// Copia elementos restantes da primeira metade
 	for i <= mid {
-		arr[k] = m.buffer[i]
+		temp[k] = arr[i]
 		i++
 		k++
+		m.metrics.Swaps++
 	}
-	// Nota: elementos da segunda metade já estão no lugar correto
+
+	for j <= right {
+		temp[k] = arr[j]
+		j++
+		k++
+		m.metrics.Swaps++
+	}
+
+	for i := 0; i < len(temp); i++ {
+		arr[left+i] = temp[i]
+	}
+
 }
 
-// Função utilitária para encontrar o mínimo entre dois inteiros
 func min(a, b int) int {
 	if a < b {
 		return a

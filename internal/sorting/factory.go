@@ -1,25 +1,27 @@
 package sorting
 
-import (
-	"errors"
-	"fmt"
-)
+import "fmt"
 
-// SortFactory é responsável por fornecer a implementação correta de Sorter
-type SortFactory struct{}
+// SorterFactory cria instâncias de algoritmos de ordenação
+type SorterFactory struct{}
 
-// NewSorterFactory cria uma nova instância de SortFactory
-func NewSorterFactory() *SortFactory {
-	return &SortFactory{}
+func NewSorterFactory() *SorterFactory {
+	return &SorterFactory{}
 }
 
-// GetSorter retorna uma implementação de Sorter com base no algoritmo e modo especificado
-func (f *SortFactory) GetSorter(algorithm string, mode string) (Sorter, error) {
+func (f *SorterFactory) GetSorter(algorithm string, mode string) (Sorter, error) {
+	sortMode := SortMode(mode)
+
 	switch algorithm {
 	case "mergesort":
-		return NewMergeSort(mode), nil
-	// Aqui você pode adicionar outros algoritmos como quicksort, bubblesort, etc.
+		return NewMergeSort(sortMode), nil
+	// case "quicksort":
+	// return NewQuickSort(sortMode), nil
+	// case "bubblesort":
+	// return NewBubbleSort(sortMode, f.tracker), nil
+	// case "heapsort":
+	// return NewHeapSort(sortMode, f.tracker), nil
 	default:
-		return nil, errors.New(fmt.Sprintf("Algoritmo '%s' não é suportado", algorithm))
+		return nil, fmt.Errorf("algoritmo não suportado: %s", algorithm)
 	}
 }

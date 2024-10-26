@@ -1,28 +1,57 @@
 package sorting
 
+import "time"
+
+// SortMode define os modos de ordenação
+type SortMode string
+
+const (
+	ModeRecursive SortMode = "recursive"
+	ModeIterative SortMode = "iterative"
+)
+
+// Metrics armazena métricas básicas de performance
+type Metrics struct {
+	Comparisons int
+	Swaps       int
+	Time        time.Duration
+}
+
+// Sorter interface básica para algoritmos de ordenação
 type Sorter interface {
 	Sort([]int) []int
 	Name() string
-	Mode() string
-	GetMetrics() SortMetrics
+	Mode() SortMode
+	GetMetrics() Metrics
 }
 
-type SortMetrics interface {
-	GetComparisons() int
-	GetSwaps() int
-	GetExecutionTime() time.Duration
-	GetMemoryUsage() float64
+// BaseSorter implementação base simplificada
+type BaseSorter struct {
+	name    string
+	mode    SortMode
+	metrics Metrics
 }
 
-type Visualizer interface {
-	TrackOperation(data []int, depth int, operationType string)
-	GenerateVisualization(filename string) error
-	Clear()
+func NewBaseSorter(name string, mode SortMode) BaseSorter {
+	return BaseSorter{
+		name:    name,
+		mode:    mode,
+		metrics: Metrics{},
+	}
 }
 
-type Analyzer interface {
-	RunBenchmark(sorter Sorter, data []int, inputType string) AnalysisResult
-	CompareAlgorithms(algorithms []Sorter, datasets map[string][]int) string
-	GenerateReport(format string) (string, error)
+func (b *BaseSorter) Name() string        { return b.name }
+func (b *BaseSorter) Mode() SortMode      { return b.mode }
+func (b *BaseSorter) GetMetrics() Metrics { return b.metrics }
+
+// Métodos utilitários simplificados
+func (b *BaseSorter) compare(x, y int) bool {
+	b.metrics.Comparisons++
+	return x < y
+}
+
+func (b *BaseSorter) swap(arr []int, i, j int) {
+	b.metrics.Swaps++
+	arr[i], arr[j] = arr[j], arr[i]
 }
 
