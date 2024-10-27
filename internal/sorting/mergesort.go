@@ -1,21 +1,16 @@
 package sorting
 
 import (
-	"fmt"
 	"time"
 )
 
 type MergeSort struct {
 	BaseSorter
-	tree *analysis.RecursionTree
 }
 
 func NewMergeSort(mode SortMode) *MergeSort {
 	return &MergeSort{
 		BaseSorter: NewBaseSorter("MergeSort", mode),
-		tree: &analysis.RecursionTree{
-			Nodes: make([]analysis.NodeInfo, 0),
-		},
 	}
 }
 
@@ -26,49 +21,24 @@ func (m *MergeSort) Sort(arr []int) []int {
 
 	switch m.mode {
 	case ModeRecursive:
-		m.sortRecursive(result, 0, len(result)-1, 0, "root")
+		m.sortRecursive(result, 0, len(result)-1, 0)
 	case ModeIterative:
 		m.sortIterative(result)
+		// case ModeParallel:
+		// result = m.sortParallel(result)
 	}
 
 	m.metrics.Time = time.Since(start)
 	return result
 }
 
-func (m *MergeSort) sortRecursive(arr []int, left, right, depth int, parentID string) {
+func (m *MergeSort) sortRecursive(arr []int, left, right, depth int) {
 	if left < right {
 		mid := left + (right-left)/2
 
-		// Record split
-		nodeID := fmt.Sprintf("node_%d_%d", left, right)
-		subArray := make([]int, right-left+1)
-		copy(subArray, arr[left:right+1])
-
-		m.tree.Nodes = append(m.tree.Nodes, analysis.NodeInfo{
-			Value:     subArray,
-			Depth:     depth,
-			NodeID:    nodeID,
-			ParentID:  parentID,
-			Operation: "split",
-		})
-
-		m.sortRecursive(arr, left, mid, depth+1, nodeID)
-		m.sortRecursive(arr, mid+1, right, depth+1, nodeID)
-
-		// Record merge
-		mergeNodeID := fmt.Sprintf("merge_%d_%d", left, right)
-		m.merge(arr, left, mid, right)
-
-		mergedArray := make([]int, right-left+1)
-		copy(mergedArray, arr[left:right+1])
-
-		m.tree.Nodes = append(m.tree.Nodes, analysis.NodeInfo{
-			Value:     mergedArray,
-			Depth:     depth,
-			NodeID:    mergeNodeID,
-			ParentID:  nodeID,
-			Operation: "merge",
-		})
+		m.sortRecursive(arr, left, mid, depth+1)
+		m.sortRecursive(arr, mid+1, right, depth+1)
+		m.merge(arr, left, mid, right, depth)
 	}
 }
 
@@ -78,12 +48,12 @@ func (m *MergeSort) sortIterative(arr []int) {
 		for left := 0; left < n-1; left += 2 * size {
 			mid := min(left+size-1, n-1)
 			right := min(left+2*size-1, n-1)
-			m.merge(arr, left, mid, right)
+			m.merge(arr, left, mid, right, 0)
 		}
 	}
 }
 
-func (m *MergeSort) merge(arr []int, left, mid, right int) {
+func (m *MergeSort) merge(arr []int, left, mid, right, depth int) {
 	temp := make([]int, right-left+1)
 	i, j, k := left, mid+1, 0
 
@@ -117,10 +87,7 @@ func (m *MergeSort) merge(arr []int, left, mid, right int) {
 	for i := 0; i < len(temp); i++ {
 		arr[left+i] = temp[i]
 	}
-}
 
-func (m *MergeSort) GetRecursionTree() *analysis.RecursionTree {
-	return m.tree
 }
 
 func min(a, b int) int {
@@ -129,4 +96,3 @@ func min(a, b int) int {
 	}
 	return b
 }
-
