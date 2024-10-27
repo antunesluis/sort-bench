@@ -1,6 +1,9 @@
 package sorting
 
-import "time"
+import (
+	"sort-bench/internal/analysis"
+	"time"
+)
 
 // SortMode define os modos de ordenação
 type SortMode string
@@ -15,6 +18,8 @@ type Metrics struct {
 	Comparisons int
 	Swaps       int
 	Time        time.Duration
+	MemoryBytes uint64
+	Tree        *analysis.RecursionTree // Alterado para usar o pacote analysis
 }
 
 // Sorter interface básica para algoritmos de ordenação
@@ -54,4 +59,3 @@ func (b *BaseSorter) swap(arr []int, i, j int) {
 	b.metrics.Swaps++
 	arr[i], arr[j] = arr[j], arr[i]
 }
-
