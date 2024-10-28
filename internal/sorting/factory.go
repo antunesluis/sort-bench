@@ -21,12 +21,6 @@ func (f *SorterFactory) GetSorter(algorithm string, mode string) (core.Sorter, e
 		return NewQuickSort(sortMode), nil
 	case "heapsort":
 		return NewHeapSort(sortMode), nil
-	// case "quicksort":
-	// 	return NewQuickSort(sortMode), nil
-	// case "heapsort":
-	// 	return NewHeapSort(sortMode), nil
-	// case "bubblesort":
-	// 	return NewBubbleSort(sortMode), nil
 	default:
 		return nil, fmt.Errorf("algoritmo não suportado: %s", algorithm)
 	}
