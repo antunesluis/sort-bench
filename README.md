@@ -1,14 +1,11 @@
 
 # Comparação e Análise de Algoritmos de Ordenação
 
-## Descriçã1
+## Descrição
 
 Este projeto implementa e compara diferentes algoritmos de ordenação, com foco em mergesort e sua aplicação em diferentes modos: recursivo, iterativo e paralelo. Além disso, inclui uma visualização em Python da árvore de recursão do mergesort.
 
-Os algoritmos comparados incluem:
-    - Mergesort
-    - Quicksort
-    - Heapsort
+Os algoritmos comparados incluem: Mergesort, Quicksort e Heapsort.
 
 O projeto permite ordenar dados a partir de arquivos de entrada, analisar o desempenho e visualizar a divisão dos dados no mergesort.
 
@@ -85,7 +82,8 @@ Os arquivos de entrada devem conter um número por linha. Exemplo:
 ## Análise e Benchmark
 
 Durante a execução com a flag -analyze, o projeto exibe informações como:
-    - Tempo de execução
-    - Comparações realizadas
-    - Trocas efetuadas
-    - Memória utilizada
+
+- Tempo de execução
+- Comparações realizadas
+- Trocas efetuadas
+- Memória utilizada
