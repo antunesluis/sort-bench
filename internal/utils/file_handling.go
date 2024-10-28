@@ -49,4 +49,3 @@ func (f *FileHandler) WriteNumbers(filename string, numbers []int) error {
 
 	return writer.Flush()
 }
-
