@@ -52,13 +52,13 @@ sort-bench/
 1. Ordenar Dados com um Algoritmo:
 
 ```bash
-go run cmd/main.go sort -input <arquivo_entrada> -output <arquivo_saida> -algo mergesort -mode recursive -analyze
+go run cmd/main.go sort -input <arquivo_entrada> -output <arquivo_saida> -algo mergesort -mode <recursive/parallel/interative> -analyze
 ```
 
 2. Comparar Algoritmos
 
 ```bash
-go run cmd/main.go compare -input <arquivo_entrada> -algorithms "mergesort,quicksort"
+go run cmd/main.go compare -input <arquivo_entrada> -algorithms "mergesort,quicksort" -mode <recursive/parallel/interative>
 ```
 
 3. Visualizar a Árvore de Recursão (Python)

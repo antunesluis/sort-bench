@@ -5,6 +5,4 @@ type Sorter interface {
 	Name() string
 	Mode() SortMode
 	GetMetrics() Metrics
-	GetRecursionTree() *RecursionTree
 }
-

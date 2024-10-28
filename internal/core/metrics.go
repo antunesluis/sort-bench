@@ -8,4 +8,3 @@ type Metrics struct {
 	Time        time.Duration
 	Memory      int64
 }
-
